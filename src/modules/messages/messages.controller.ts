@@ -33,7 +33,7 @@ export class MessagesController {
       error_message: result.message.errorMessage,
       created_at: result.message.createdAt,
       sent_at: result.message.sentAt,
-      last_attempts: result.attempts.map((a) => ({
+      last_attempts: result.attempts.map((a: any) => ({
         attempt_number: a.attemptNumber,
         success: a.success,
         http_status: a.httpStatus,

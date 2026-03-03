@@ -2,6 +2,7 @@
 import { ConfigModule } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
 import { PrismaModule } from "./common/prisma.module";
+import { RedisModule } from "./common/redis.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { TenantsModule } from "./modules/tenants/tenants.module";
 import { PhonesModule } from "./modules/phones/phones.module";
@@ -14,6 +15,7 @@ import { RateLimitGuard } from "./common/guards/rate-limit.guard";
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    RedisModule,
     AuthModule,
     TenantsModule,
     PhonesModule,

@@ -1,4 +1,4 @@
-﻿import { CanActivate, ExecutionContext, Injectable, TooManyRequestsException } from "@nestjs/common";
+﻿import { CanActivate, ExecutionContext, Injectable, HttpException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { RedisService } from "../redis.service";
 import { RequestWithTenant } from "../auth/request-with-tenant";
@@ -24,7 +24,7 @@ export class RateLimitGuard implements CanActivate {
     }
 
     if (count > limit) {
-      throw new TooManyRequestsException("Rate limit exceeded");
+      throw new HttpException("Rate limit exceeded", 429);
     }
 
     const to = (request as any).body?.to as string | undefined;
@@ -35,7 +35,7 @@ export class RateLimitGuard implements CanActivate {
         await client.expire(phoneKey, windowSec);
       }
       if (phoneCount > limit) {
-        throw new TooManyRequestsException("Rate limit exceeded for phone");
+        throw new HttpException("Rate limit exceeded for phone", 429);
       }
     }
 

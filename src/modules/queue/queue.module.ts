@@ -1,21 +1,20 @@
 ﻿import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { Queue } from "bullmq";
-import { RedisService } from "../../common/redis.service";
 import { QueueService } from "./queue.service";
 import { WHATSAPP_QUEUE } from "./queue.constants";
 
 @Module({
   imports: [ConfigModule],
   providers: [
-    RedisService,
     {
       provide: WHATSAPP_QUEUE,
-      useFactory: (config: ConfigService, redis: RedisService) => {
-        const connection = redis.getClient();
+      useFactory: (config: ConfigService) => {
+        const host = config.get<string>("REDIS_HOST", "localhost");
+        const port = Number(config.get<string>("REDIS_PORT", "6379"));
         const defaultBackoff = Number(config.get<string>("DEFAULT_BACKOFF_MS", "1000"));
         return new Queue(WHATSAPP_QUEUE, {
-          connection,
+          connection: { host, port },
           defaultJobOptions: {
             removeOnComplete: 1000,
             removeOnFail: 1000,
@@ -23,10 +22,10 @@ import { WHATSAPP_QUEUE } from "./queue.constants";
           }
         });
       },
-      inject: [ConfigService, RedisService]
+      inject: [ConfigService]
     },
     QueueService
   ],
-  exports: [QueueService, WHATSAPP_QUEUE, RedisService]
+  exports: [QueueService, WHATSAPP_QUEUE]
 })
 export class QueueModule {}

@@ -2,6 +2,7 @@
 import { Job, Worker } from "bullmq";
 import { PrismaService } from "./common/prisma.service";
 import { RedisService } from "./common/redis.service";
+import { ConfigService } from "@nestjs/config";
 import { WHATSAPP_QUEUE } from "./modules/queue/queue.constants";
 import { WhatsAppProviderService } from "./providers/whatsapp/whatsapp-provider.service";
 
@@ -13,16 +14,18 @@ export class WorkerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
-    private readonly providers: WhatsAppProviderService
+    private readonly providers: WhatsAppProviderService,
+    private readonly config: ConfigService
   ) {}
 
   async start() {
-    const connection = this.redis.getClient();
+    const host = this.config.get<string>("REDIS_HOST", "localhost");
+    const port = Number(this.config.get<string>("REDIS_PORT", "6379"));
     this.worker = new Worker(
       WHATSAPP_QUEUE,
       async (job) => this.process(job),
       {
-        connection,
+        connection: { host, port },
         concurrency: 5
       }
     );

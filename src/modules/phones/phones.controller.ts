@@ -22,7 +22,7 @@ export class PhonesController {
   @Get()
   async list(@Req() req: RequestWithTenant) {
     const phones = await this.phonesService.list(req.tenant.id);
-    return phones.map((p) => this.sanitize(p));
+    return phones.map((p: any) => this.sanitize(p));
   }
 
   @Get(":id")
