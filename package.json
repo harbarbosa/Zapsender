@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "whatsapp-sender-saas",
   "version": "1.0.0",
   "description": "WhatsApp Sender SaaS (NestJS + Prisma + BullMQ)",
