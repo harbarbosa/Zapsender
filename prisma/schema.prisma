@@ -1,0 +1,125 @@
+﻿generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TenantPhoneProvider {
+  cloud_api
+  dialog360
+  zapi
+  chatpro
+}
+
+enum HealthStatus {
+  unknown
+  ok
+  fail
+}
+
+enum MessageType {
+  text
+  media
+  template
+}
+
+enum MessageStatus {
+  queued
+  sending
+  sent
+  failed
+}
+
+model Tenant {
+  id                   String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                 String
+  apiKeyHash           String         @map("api_key_hash")
+  isActive             Boolean        @default(true) @map("is_active")
+  rateLimitPerMinute   Int            @default(60) @map("rate_limit_per_minute")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+
+  phones               TenantPhone[]
+  messages             Message[]
+  attempts             MessageAttempt[]
+
+  @@unique([apiKeyHash])
+  @@map("tenants")
+}
+
+model TenantPhone {
+  id                    String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId              String        @map("tenant_id") @db.Uuid
+  provider              TenantPhoneProvider
+  displayName           String        @map("display_name")
+  phoneNumber           String?       @map("phone_number")
+  phoneId               String?       @map("phone_id")
+  businessAccountId     String?       @map("business_account_id")
+  accessTokenEnc        String        @map("access_token_enc")
+  webhookVerifyTokenEnc String?       @map("webhook_verify_token_enc")
+  isActive              Boolean       @default(true) @map("is_active")
+  healthStatus          HealthStatus  @default(unknown) @map("health_status")
+  lastHealthCheckAt     DateTime?     @map("last_health_check_at")
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+
+  tenant                Tenant        @relation(fields: [tenantId], references: [id])
+  messages              Message[]
+
+  @@index([tenantId, isActive])
+  @@unique([tenantId, phoneId])
+  @@map("tenant_phones")
+}
+
+model Message {
+  id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String         @map("tenant_id") @db.Uuid
+  tenantPhoneId     String?        @map("tenant_phone_id") @db.Uuid
+  to                String
+  type              MessageType
+  message           String?
+  mediaUrl          String?        @map("media_url")
+  templateName      String?        @map("template_name")
+  templateLang      String         @default("pt_BR") @map("template_lang")
+  status            MessageStatus  @default(queued)
+  providerMessageId String?        @map("provider_message_id")
+  errorCode         String?        @map("error_code")
+  errorMessage      String?        @map("error_message")
+  attempts          Int            @default(0)
+  maxAttempts       Int            @default(5) @map("max_attempts")
+  scheduledAt       DateTime?      @map("scheduled_at")
+  sentAt            DateTime?      @map("sent_at")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+
+  tenant            Tenant         @relation(fields: [tenantId], references: [id])
+  tenantPhone       TenantPhone?   @relation(fields: [tenantPhoneId], references: [id])
+  attemptsLog       MessageAttempt[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@map("messages")
+}
+
+model MessageAttempt {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  messageId       String   @map("message_id") @db.Uuid
+  attemptNumber   Int      @map("attempt_number")
+  requestPayload  Json     @map("request_payload")
+  responsePayload Json     @map("response_payload")
+  httpStatus      Int?     @map("http_status")
+  success         Boolean
+  errorMessage    String?  @map("error_message")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  message         Message  @relation(fields: [messageId], references: [id])
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, messageId])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@map("message_attempts")
+}
